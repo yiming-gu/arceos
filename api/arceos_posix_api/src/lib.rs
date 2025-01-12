@@ -15,9 +15,9 @@ extern crate axruntime;
 extern crate alloc;
 
 #[macro_use]
-mod utils;
+pub mod utils;
 
-mod imp;
+pub mod imp;
 
 /// Platform-specific constants and parameters.
 pub mod config {

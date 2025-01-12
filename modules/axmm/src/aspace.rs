@@ -10,6 +10,7 @@ use memory_set::{MemoryArea, MemorySet};
 
 use crate::backend::Backend;
 use crate::mapping_err_to_ax_err;
+use crate::kernel_aspace;
 
 /// The virtual memory address space.
 pub struct AddrSpace {
@@ -276,6 +277,25 @@ impl AddrSpace {
             }
         }
         false
+    }
+
+    pub fn from_existed_user(user_space: &Self) -> AxResult<Self> {
+        let mut aspace= Self::new_empty(user_space.base(), user_space.size()).unwrap();
+        if !cfg!(target_arch = "aarch64") {
+            // ARMv8 use a separate page table (TTBR0_EL1) for user space, it
+            // doesn't need to copy the kernel portion to the user page table.
+            aspace.copy_mappings_from(&kernel_aspace().lock())?;
+        }
+        // copy data sections/trap_context/user_stack
+        for area in user_space.areas.iter() {
+            aspace.map_alloc(area.start(), area.size(), area.flags(), true).unwrap();
+            // copy data from another space
+            let (paddr, _, _) = user_space.pt.query(area.start()).map_err(|_| AxError::BadAddress)?;
+            aspace.process_area_data(area.start(), area.size(), |dst, offset, write_size| unsafe {
+                core::ptr::copy_nonoverlapping(phys_to_virt(paddr).as_ptr().add(offset), dst.as_mut_ptr(), write_size);
+            })?;
+        }
+        Ok(aspace)
     }
 }
 

@@ -39,8 +39,8 @@ fn riscv_trap_handler(tf: &mut TrapFrame, from_user: bool) {
     match scause.cause() {
         #[cfg(feature = "uspace")]
         Trap::Exception(E::UserEnvCall) => {
-            tf.regs.a0 = crate::trap::handle_syscall(tf, tf.regs.a7) as usize;
             tf.sepc += 4;
+            tf.regs.a0 = crate::trap::handle_syscall(tf, tf.regs.a7) as usize;
         }
         Trap::Exception(E::LoadPageFault) => handle_page_fault(tf, MappingFlags::READ, from_user),
         Trap::Exception(E::StorePageFault) => handle_page_fault(tf, MappingFlags::WRITE, from_user),

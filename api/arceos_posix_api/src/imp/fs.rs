@@ -10,21 +10,21 @@ use super::fd_ops::{get_file_like, FileLike};
 use crate::{ctypes, utils::char_ptr_to_str};
 
 pub struct File {
-    inner: Mutex<axfs::fops::File>,
+    pub inner: Mutex<axfs::fops::File>,
 }
 
 impl File {
-    fn new(inner: axfs::fops::File) -> Self {
+    pub fn new(inner: axfs::fops::File) -> Self {
         Self {
             inner: Mutex::new(inner),
         }
     }
 
-    fn add_to_fd_table(self) -> LinuxResult<c_int> {
+    pub fn add_to_fd_table(self) -> LinuxResult<c_int> {
         super::fd_ops::add_file_like(Arc::new(self))
     }
 
-    fn from_fd(fd: c_int) -> LinuxResult<Arc<Self>> {
+    pub fn from_fd(fd: c_int) -> LinuxResult<Arc<Self>> {
         let f = super::fd_ops::get_file_like(fd)?;
         f.into_any()
             .downcast::<Self>()

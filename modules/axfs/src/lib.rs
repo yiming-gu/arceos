@@ -29,7 +29,7 @@ extern crate alloc;
 mod dev;
 mod fs;
 mod mounts;
-mod root;
+pub mod root;
 
 pub mod api;
 pub mod fops;
