@@ -44,6 +44,7 @@ pub struct OpenOptions {
     truncate: bool,
     create: bool,
     create_new: bool,
+    pub directory: bool,
     // system-specific
     _custom_flags: i32,
     _mode: u32,
@@ -60,6 +61,7 @@ impl OpenOptions {
             truncate: false,
             create: false,
             create_new: false,
+            directory: false,
             // system-specific
             _custom_flags: 0,
             _mode: 0o666,
@@ -88,6 +90,10 @@ impl OpenOptions {
     /// Sets the option to create a new file, failing if it already exists.
     pub fn create_new(&mut self, create_new: bool) {
         self.create_new = create_new;
+    }
+    /// Sets the option to open a directory.
+    pub fn directory(&mut self, directory: bool) {
+        self.directory = directory;
     }
 
     const fn is_valid(&self) -> bool {
@@ -256,9 +262,11 @@ impl Directory {
     fn _open_dir_at(dir: Option<&VfsNodeRef>, path: &str, opts: &OpenOptions) -> AxResult<Self> {
         debug!("open dir: {}", path);
         if !opts.read {
+            info!("open dir: no read permission");
             return ax_err!(InvalidInput);
         }
         if opts.create || opts.create_new || opts.write || opts.append || opts.truncate {
+            info!("open dir: invalid options");
             return ax_err!(InvalidInput);
         }
 

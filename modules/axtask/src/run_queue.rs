@@ -49,6 +49,11 @@ impl AxRunQueue {
         let curr = crate::current();
         trace!("task yield: {}", curr.id_name());
         assert!(curr.is_running());
+        #[cfg(feature = "sched_cfs")]
+        if !curr.is_idle() && self.scheduler.task_tick(curr.as_task_ref()) {
+            self.resched(false);
+        }
+        #[cfg(not(feature = "sched_cfs"))]
         self.resched(false);
     }
 

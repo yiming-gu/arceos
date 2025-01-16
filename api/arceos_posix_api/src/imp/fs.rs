@@ -5,17 +5,20 @@ use axerrno::{LinuxError, LinuxResult};
 use axfs::fops::OpenOptions;
 use axio::{PollState, SeekFrom};
 use axsync::Mutex;
+use alloc::string::{String, ToString};
 
 use super::fd_ops::{get_file_like, FileLike};
 use crate::{ctypes, utils::char_ptr_to_str};
 
 pub struct File {
-    pub inner: Mutex<axfs::fops::File>,
+    inner: Mutex<axfs::fops::File>,
+    path: String,
 }
 
 impl File {
-    pub fn new(inner: axfs::fops::File) -> Self {
+    pub fn new(path: &str, inner: axfs::fops::File) -> Self {
         Self {
+            path: path.to_string(),
             inner: Mutex::new(inner),
         }
     }
@@ -39,6 +42,14 @@ impl FileLike for File {
 
     fn write(&self, buf: &[u8]) -> LinuxResult<usize> {
         Ok(self.inner.lock().write(buf)?)
+    }
+
+    fn seek(&self, pos: SeekFrom) -> LinuxResult<u64> {
+        Ok(self.inner.lock().seek(pos)?)
+    }
+
+    fn path(&self) -> String {
+        self.path.to_string().clone()
     }
 
     fn stat(&self) -> LinuxResult<ctypes::stat> {
@@ -76,7 +87,7 @@ impl FileLike for File {
 }
 
 /// Convert open flags to [`OpenOptions`].
-fn flags_to_options(flags: c_int, _mode: ctypes::mode_t) -> OpenOptions {
+pub fn flags_to_options(flags: c_int, _mode: ctypes::mode_t) -> OpenOptions {
     let flags = flags as u32;
     let mut options = OpenOptions::new();
     match flags & 0b11 {
@@ -96,9 +107,12 @@ fn flags_to_options(flags: c_int, _mode: ctypes::mode_t) -> OpenOptions {
     if flags & ctypes::O_CREAT != 0 {
         options.create(true);
     }
-    if flags & ctypes::O_EXEC != 0 {
-        options.create_new(true);
+    if flags & ctypes::O_DIRECTORY != 0 {
+        options.directory(true);
     }
+    // if flags & ctypes::O_EXEC != 0 {
+    //     options.create_new(true);
+    // }
     options
 }
 
@@ -112,7 +126,7 @@ pub fn sys_open(filename: *const c_char, flags: c_int, mode: ctypes::mode_t) -> 
     syscall_body!(sys_open, {
         let options = flags_to_options(flags, mode);
         let file = axfs::fops::File::open(filename?, &options)?;
-        File::new(file).add_to_fd_table()
+        File::new(filename?, file).add_to_fd_table()
     })
 }
 
@@ -146,7 +160,7 @@ pub unsafe fn sys_stat(path: *const c_char, buf: *mut ctypes::stat) -> c_int {
         let mut options = OpenOptions::new();
         options.read(true);
         let file = axfs::fops::File::open(path?, &options)?;
-        let st = File::new(file).stat()?;
+        let st = File::new(path?, file).stat()?;
         unsafe { *buf = st };
         Ok(0)
     })

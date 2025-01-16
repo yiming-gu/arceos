@@ -159,6 +159,14 @@ impl TaskInner {
             None
         }
     }
+
+    pub fn get_code_if_exit(&self) -> Option<i32> {
+        if self.state() == TaskState::Exited {
+            Some(self.exit_code.load(Ordering::Acquire))
+        } else {
+            None
+        }
+    }
 }
 
 // private methods

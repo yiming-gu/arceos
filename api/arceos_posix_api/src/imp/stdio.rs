@@ -1,6 +1,7 @@
 use axerrno::AxResult;
 use axio::{prelude::*, BufReader};
 use axsync::Mutex;
+use alloc::string::{String, ToString};
 
 #[cfg(feature = "fd")]
 use {alloc::sync::Arc, axerrno::LinuxError, axerrno::LinuxResult, axio::PollState};
@@ -107,6 +108,14 @@ impl super::fd_ops::FileLike for Stdin {
         Err(LinuxError::EPERM)
     }
 
+    fn seek(&self, _pos: axio::SeekFrom) -> LinuxResult<u64> {
+        Err(LinuxError::ESPIPE)
+    }
+
+    fn path(&self) -> String {
+        "stdin".to_string()
+    }
+
     fn stat(&self) -> LinuxResult<crate::ctypes::stat> {
         let st_mode = 0o20000 | 0o440u32; // S_IFCHR | r--r-----
         Ok(crate::ctypes::stat {
@@ -141,6 +150,14 @@ impl super::fd_ops::FileLike for Stdout {
 
     fn write(&self, buf: &[u8]) -> LinuxResult<usize> {
         Ok(self.inner.lock().write(buf)?)
+    }
+
+    fn seek(&self, _pos: axio::SeekFrom) -> LinuxResult<u64> {
+        Err(LinuxError::ESPIPE)
+    }
+
+    fn path(&self) -> String {
+        "stdout".to_string()
     }
 
     fn stat(&self) -> LinuxResult<crate::ctypes::stat> {

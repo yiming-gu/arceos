@@ -2,10 +2,11 @@ use alloc::sync::Arc;
 use core::ffi::c_int;
 
 use axerrno::{LinuxError, LinuxResult};
-use axio::PollState;
+use axio::{PollState, SeekFrom};
 use axns::{def_resource, AxResource};
 use flatten_objects::FlattenObjects;
 use spin::RwLock;
+use alloc::string::{String, ToString};
 
 use crate::ctypes;
 
@@ -15,6 +16,8 @@ pub const AX_FILE_LIMIT: usize = 1024;
 pub trait FileLike: Send + Sync {
     fn read(&self, buf: &mut [u8]) -> LinuxResult<usize>;
     fn write(&self, buf: &[u8]) -> LinuxResult<usize>;
+    fn seek(&self, pos: SeekFrom) -> LinuxResult<u64>;
+    fn path(&self) -> String;
     fn stat(&self) -> LinuxResult<ctypes::stat>;
     fn into_any(self: Arc<Self>) -> Arc<dyn core::any::Any + Send + Sync>;
     fn poll(&self) -> LinuxResult<PollState>;

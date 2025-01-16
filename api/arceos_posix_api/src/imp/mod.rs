@@ -10,6 +10,7 @@ pub mod time;
 pub mod fd_ops;
 #[cfg(feature = "fs")]
 pub mod fs;
+pub mod dir;
 #[cfg(any(feature = "select", feature = "epoll"))]
 pub mod io_mpx;
 #[cfg(feature = "net")]
